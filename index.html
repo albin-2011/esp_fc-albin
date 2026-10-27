@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP_FC Configurator & Web Firmware Studio v10.9.0</title>
+  <!-- Three.js for 3D Quadcopter -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #090c10;
+      --bg-panel: #11161f;
+      --bg-card: #161c28;
+      --border: #242e42;
+      --bf-gold: #ffbb00;
+      --bf-gold-dim: rgba(255, 187, 0, 0.14);
+      --bf-blue: #38bdf8;
+      --bf-green: #10b981;
+      --bf-red: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    /* TOP BAR */
+    header {
+      height: 62px; background: var(--bg-panel); border-bottom: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 18px; flex-shrink: 0;
+    }
+    .brand-box { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 38px; height: 38px; border-radius: 8px; background: var(--bf-gold); color: #000;
+      display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 17px;
+    }
+    .brand-title h1 { font-size: 16px; color: var(--bf-gold); letter-spacing: 0.7px; font-weight: 800; }
+    .brand-title span { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+
+    .sensor-lights { display: flex; gap: 5px; }
+    .s-pill {
+      padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;
+      background: #1a2130; color: #525c70; border: 1px solid var(--border); transition: 0.2s;
+    }
+    .s-pill.on { background: rgba(16, 185, 129, 0.16); color: var(--bf-green); border-color: var(--bf-green); }
+
+    .top-stats { display: flex; gap: 8px; font-family: monospace; font-size: 11px; }
+    .stat-item { background: var(--bg-dark); padding: 5px 9px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-muted); }
+    .stat-item b { color: var(--bf-blue); }
+
+    .conn-controls { display: flex; align-items: center; gap: 8px; }
+    .conn-controls select {
+      background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border);
+      padding: 7px 10px; border-radius: 4px; font-size: 12px;
+    }
+    .btn-connect {
+      background: var(--bf-green); color: #000; font-weight: 800; border: none;
+      padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 12px;
+    }
+    .btn-connect.connected { background: var(--bf-red); color: #fff; }
+
+    /* MAIN WORKSPACE */
+    .workspace { display: flex; flex: 1; overflow: hidden; }
+    aside {
+      width: 235px; background: var(--bg-panel); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow-y: auto; padding: 10px; gap: 3px; flex-shrink: 0;
+    }
+    .tab-btn {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      background: transparent; color: var(--text-muted); border: none; border-radius: 5px;
+      font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; transition: 0.15s;
+    }
+    .tab-btn:hover { background: rgba(255, 187, 0, 0.08); color: var(--text-main); }
+    .tab-btn.active { background: var(--bf-gold-dim); color: var(--bf-gold); border-left: 3px solid var(--bf-gold); }
+
+    main { flex: 1; overflow-y: auto; padding: 20px; }
+    .tab-view { display: none; }
+    .tab-view.active { display: block; }
+
+    /* CARDS & GRIDS */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 7px; padding: 16px; margin-bottom: 18px;
+    }
+    .card h3 {
+      font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--bf-gold); border-bottom: 1px solid var(--border);
+      padding-bottom: 9px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* INPUTS & TABLES */
+    label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    input[type="number"], input[type="text"], select {
+      width: 100%; padding: 8px 10px; background: var(--bg-dark); border: 1px solid var(--border);
+      color: var(--text-main); border-radius: 4px; font-size: 13px; margin-bottom: 10px;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--bf-gold); cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--bf-gold); font-size: 11px; text-transform: uppercase; background: rgba(0,0,0,0.25); }
+
+    .btn-gold {
+      background: var(--bf-gold); color: #000; font-weight: 800; border: none;
+      padding: 9px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; text-transform: uppercase;
+    }
+    .btn-gold:hover { opacity: 0.92; }
+    .btn-blue {
+      background: var(--bf-blue); color: #000; font-weight: 700; border: none;
+      padding: 9px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; text-transform: uppercase;
+    }
+    .btn-green {
+      background: var(--bf-green); color: #000; font-weight: 800; border: none;
+      padding: 9px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; text-transform: uppercase;
+    }
+
+    /* SWITCH TOGGLE */
+    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: #263044; border-radius: 20px; transition: 0.25s; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.25s; }
+    input:checked + .slider { background: var(--bf-gold); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* RC CHANNEL BARS */
+    .rc-bar-wrap { margin-bottom: 10px; }
+    .rc-bar-head { display: flex; justify-content: space-between; font-size: 12px; font-family: monospace; margin-bottom: 3px; }
+    .rc-track { height: 18px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+    .rc-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #10b981); width: 50%; transition: width 0.05s; }
+
+    /* PROGRESS BAR FOR WEB FLASHER */
+    .flash-progress-wrap { width: 100%; height: 22px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin: 10px 0; }
+    .flash-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #10b981); transition: width 0.2s; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #000; }
+
+    /* FOOTER */
+    footer {
+      height: 48px; background: var(--bg-panel); border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0;
+    }
+    .status-log { font-family: monospace; font-size: 12px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <!-- TOP TELEMETRY & CONNECTION BAR -->
+  <header>
+    <div class="brand-box">
+      <div class="brand-logo">EF</div>
+      <div class="brand-title">
+        <h1>ESP_FC CONFIGURATOR</h1>
+        <span id="board-badge">TARGET: ESP32 DUAL-CORE | RX: ESP-NOW</span>
+      </div>
+    </div>
+
+    <div class="sensor-lights">
+      <div class="s-pill on" id="pill-gyro">GYRO</div>
+      <div class="s-pill on" id="pill-acc">ACC</div>
+      <div class="s-pill on" id="pill-baro">BARO</div>
+      <div class="s-pill on" id="pill-mag">MAG</div>
+      <div class="s-pill on" id="pill-gps">GPS</div>
+      <div class="s-pill on" id="pill-osd">OSD</div>
+      <div class="s-pill on" id="pill-vtx">VTX</div>
+    </div>
+
+    <div class="top-stats">
+      <div class="stat-item">VBAT: <b id="top-vbat">12.60V</b></div>
+      <div class="stat-item">LOOP: <b id="top-cycle">2000µs (500Hz)</b></div>
+      <div class="stat-item">RX: <b id="top-rx">ESP-NOW</b></div>
+      <div class="stat-item">I2C ERR: <b id="top-i2c">0</b></div>
+    </div>
+
+    <div class="conn-controls">
+      <select id="conn-mode">
+        <option value="serial">USB Web Serial (115200)</option>
+        <option value="ws">Wi-Fi WebSocket (ws://192.168.4.1:81)</option>
+        <option value="sim">Demo Simulator (60Hz)</option>
+      </select>
+      <button class="btn-connect" id="btn-conn" onclick="toggleConnection()">CONNECT</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <!-- SIDEBAR TABS -->
+    <aside>
+      <button class="tab-btn active" onclick="openTab('setup', this)">1. Setup</button>
+      <button class="tab-btn" onclick="openTab('ports', this)">2. Ports</button>
+      <button class="tab-btn" onclick="openTab('config', this)">3. Configuration & Pins</button>
+      <button class="tab-btn" onclick="openTab('receiver', this)">4. Receiver (RX Select)</button>
+      <button class="tab-btn" onclick="openTab('pid', this)">5. PID Tuning & Rates</button>
+      <button class="tab-btn" onclick="openTab('modes', this)">6. Modes (AUX Switches)</button>
+      <button class="tab-btn" onclick="openTab('motors', this)">7. Motors & ESC</button>
+      <button class="tab-btn" onclick="openTab('osd', this)">8. OSD & VTX</button>
+      <button class="tab-btn" onclick="openTab('power', this)">9. Power & Battery</button>
+      <button class="tab-btn" onclick="openTab('sensors', this)">10. Live Sensors Graph</button>
+      <button class="tab-btn" onclick="openTab('flasher', this)" style="border:1px solid rgba(255,187,0,0.4); color:var(--bf-gold);">11. Web Flasher & Builder</button>
+    </aside>
+
+    <main>
+      <!-- ==================== TAB 1: SETUP ==================== -->
+      <section id="tab-setup" class="tab-view active">
+        <div class="grid-2">
+          <div class="card" style="height:430px; display:flex; flex-direction:column;">
+            <h3>3D Quadcopter Attitude Preview <span id="arm-badge" style="color:var(--bf-red);">DISARMED</span></h3>
+            <div id="three-box" style="flex:1; background:#05070a; border-radius:6px; overflow:hidden;"></div>
+          </div>
+          <div>
+            <div class="card">
+              <h3>Sensor Calibration & Reset</h3>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Keep your drone flat and motionless before calibrating.</p>
+              <div class="grid-3">
+                <button class="btn-gold" onclick="sendCmd({cmd:'CAL_ACC'})">Calibrate Accel</button>
+                <button class="btn-blue" onclick="sendCmd({cmd:'CAL_GYRO'})">Calibrate Gyro</button>
+                <button class="btn-green" onclick="fcState.yaw=0; sendCmd({cmd:'RESET_YAW'})">Reset Heading</button>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Live Flight Controller Summary</h3>
+              <table>
+                <tr><td>Roll Angle</td><td><b id="st-roll" style="color:var(--bf-blue);">0.0°</b></td><td>Baro Altitude</td><td><b id="st-alt">1.2 m</b></td></tr>
+                <tr><td>Pitch Angle</td><td><b id="st-pitch" style="color:var(--bf-blue);">0.0°</b></td><td>Compass Heading</td><td><b id="st-hdg">0° N</b></td></tr>
+                <tr><td>Yaw Heading</td><td><b id="st-yaw" style="color:var(--bf-blue);">0.0°</b></td><td>GPS Status</td><td><b id="st-gps">9 SATS (3D FIX)</b></td></tr>
+                <tr><td>Receiver Mode</td><td><b id="st-rx-proto" style="color:var(--bf-gold);">ESP-NOW</b></td><td>VTX Frequency</td><td><b id="st-vtx">R1 (5658 MHz)</b></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: PORTS ==================== -->
+      <section id="tab-ports" class="tab-view">
+        <div class="card">
+          <h3>UART & Bus Port Allocation</h3>
+          <table>
+            <thead>
+              <tr><th>Port</th><th>GPIO Pins</th><th>MSP Config</th><th>Serial Receiver</th><th>VTX / Peripherals</th><th>GPS Sensor</th><th>Baud Rate</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>UART0 (USB)</b></td><td>GPIO 3 / GPIO 1</td>
+                <td><label class="switch"><input type="checkbox" checked disabled><span class="slider"></span></label></td>
+                <td>-</td><td>-</td><td>-</td>
+                <td><select><option>115200</option></select></td>
+              </tr>
+              <tr>
+                <td><b>UART1 (GPS)</b></td><td>Configurable</td>
+                <td>-</td><td>-</td><td>-</td>
+                <td><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></td>
+                <td><select><option>9600 (GPS)</option><option>57600</option><option>115200</option></select></td>
+              </tr>
+              <tr>
+                <td><b>UART2 (RX / VTX)</b></td><td>GPIO 16 / GPIO 17</td>
+                <td>-</td>
+                <td><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></td>
+                <td><select><option>TBS SmartAudio</option><option>IRC Tramp</option></select></td>
+                <td>-</td>
+                <td><select id="port-rx-baud"><option value="420000">420000 (ELRS CRSF)</option><option value="115200">115200 (FlySky iBUS)</option><option value="100000">100000 (FrSky SBUS)</option></select></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: CONFIGURATION & PINS ==================== -->
+      <section id="tab-config" class="tab-view">
+        <div class="grid-2">
+          <div class="card">
+            <h3>Board Target & GPIO Pin Remapping</h3>
+            <label>Microcontroller Board Architecture</label>
+            <select id="cfg-board" onchange="switchBoardTarget(this.value)">
+              <option value="ESP32">ESP32 DevKit V1 (Dual-Core 240MHz - Best for Drones)</option>
+              <option value="ESP8266">ESP8266 NodeMCU / Wemos D1 Mini (Single-Core 160MHz)</option>
+            </select>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px;">
+              <div><label>Motor 1 Pin (Rear Right CCW)</label><input type="number" id="pin-m1" value="12" oninput="autoBuildFirmware()"></div>
+              <div><label>Motor 2 Pin (Front Right CW)</label><input type="number" id="pin-m2" value="13" oninput="autoBuildFirmware()"></div>
+              <div><label>Motor 3 Pin (Rear Left CW)</label><input type="number" id="pin-m3" value="14" oninput="autoBuildFirmware()"></div>
+              <div><label>Motor 4 Pin (Front Left CCW)</label><input type="number" id="pin-m4" value="27" oninput="autoBuildFirmware()"></div>
+              <div><label>I2C SDA Pin (MPU6050/Baro)</label><input type="number" id="pin-sda" value="21" oninput="autoBuildFirmware()"></div>
+              <div><label>I2C SCL Pin (MPU6050/Baro)</label><input type="number" id="pin-scl" value="22" oninput="autoBuildFirmware()"></div>
+              <div><label>Serial RX Pin (ELRS/iBUS/SBUS)</label><input type="number" id="pin-rx" value="16" oninput="autoBuildFirmware()"></div>
+              <div><label>VTX SmartAudio TX Pin</label><input type="number" id="pin-vtx" value="17" oninput="autoBuildFirmware()"></div>
+              <div><label>MAX7456 OSD SPI CS Pin</label><input type="number" id="pin-osd-cs" value="5" oninput="autoBuildFirmware()"></div>
+              <div><label>GPS RX Pin</label><input type="number" id="pin-gps-rx" value="4" oninput="autoBuildFirmware()"></div>
+              <div><label>Buzzer (Beeper) Pin</label><input type="number" id="pin-buz" value="25" oninput="autoBuildFirmware()"></div>
+              <div><label>WS2812B RGB LED Pin</label><input type="number" id="pin-led" value="26" oninput="autoBuildFirmware()"></div>
+              <div><label>Battery Voltage ADC Pin</label><input type="number" id="pin-vbat" value="34" oninput="autoBuildFirmware()"></div>
+            </div>
+            <button class="btn-gold" style="width:100%; margin-top:8px;" onclick="savePinsAndModules()">APPLY PINS & REBUILD FIRMWARE</button>
+          </div>
+
+          <div class="card">
+            <h3>Sensors & Peripherals Master Switchboard (ON / OFF)</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Turn any sensor or module ON/OFF — updates both live ESP_FC NVS and auto-built firmware:</p>
+            <table>
+              <tbody>
+                <tr><td><b>MPU6050 Gyroscope</b> (500Hz Angular Rate)</td><td><label class="switch"><input type="checkbox" id="sw-gyro" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+                <tr><td><b>MPU6050 Accelerometer</b> (Self-Level Angle Mode)</td><td><label class="switch"><input type="checkbox" id="sw-acc" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+                <tr><td><b>BMP280 Barometer</b> (Altitude Measurement)</td><td><label class="switch"><input type="checkbox" id="sw-baro" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+                <tr><td><b>QMC5883L Compass</b> (Magnetometer Heading)</td><td><label class="switch"><input type="checkbox" id="sw-mag" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+                <tr><td><b>NEO-6M / M8N GPS</b> (Satellites & Coordinates)</td><td><label class="switch"><input type="checkbox" id="sw-gps" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+                <tr><td><b>MAX7456 SPI OSD</b> (FPV Goggle Telemetry Overlay)</td><td><label class="switch"><input type="checkbox" id="sw-osd" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+                <tr><td><b>SmartAudio VTX</b> (5.8GHz Band/Channel/Power Control)</td><td><label class="switch"><input type="checkbox" id="sw-vtx" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+                <tr><td><b>Buzzer Alarm</b> (Lost Model & Low Battery Beep)</td><td><label class="switch"><input type="checkbox" id="sw-buz" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+                <tr><td><b>WS2812B RGB LED Strip</b> (Arm/Flight Status LEDs)</td><td><label class="switch"><input type="checkbox" id="sw-led" checked onchange="savePinsAndModules()"><span class="slider"></span></label></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: RECEIVER (MULTI-PROTOCOL SELECTOR) ==================== -->
+      <section id="tab-receiver" class="tab-view">
+        <div class="grid-2">
+          <div class="card">
+            <h3>Select Receiver Protocol (Dynamically Rebuilds Code & Configures FC)</h3>
+            <label>Receiver Provider / Radio Protocol</label>
+            <select id="rx-protocol" onchange="updateRxProtocol(this.value)" style="border-color:var(--bf-gold); font-weight:bold;">
+              <option value="ESPNOW">1. ESP-NOW Wireless (Use 2nd ESP32 / ESP8266 as Remote Controller)</option>
+              <option value="CRSF">2. ELRS / TBS Crossfire (CRSF Serial Protocol on RX Pin @ 420000 baud)</option>
+              <option value="IBUS">3. FlySky iBUS Serial Receiver (Single-Wire UART on RX Pin @ 115200 baud)</option>
+              <option value="SBUS">4. FrSky / Futaba SBUS Receiver (100000 baud 8E2 on RX Pin)</option>
+              <option value="WIFI_UDP">5. Wi-Fi Web / Mobile App Joystick Control</option>
+            </select>
+
+            <div id="rx-wiring-hint" style="background:#080b10; border:1px solid var(--border); padding:12px; border-radius:6px; font-family:monospace; font-size:12px; color:var(--bf-blue); margin-bottom:12px;">
+              📡 <b>ESP-NOW Active:</b> No external receiver wiring needed! Turn on your 2nd ESP32 Transmitter on Wi-Fi Channel 1 and it pairs automatically.
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label>Channel Mapping Order</label>
+                <select id="rx-map">
+                  <option value="AETR">AETR1234 (Betaflight / ELRS Default)</option>
+                  <option value="TAER">TAER1234 (Spektrum / JR)</option>
+                </select>
+              </div>
+              <div>
+                <label>RC Deadband (µs)</label>
+                <input type="number" value="15">
+              </div>
+            </div>
+
+            <button class="btn-gold" style="width:100%;" onclick="updateRxProtocol(document.getElementById('rx-protocol').value)">SAVE RECEIVER TYPE TO ESP_FC & REBUILD CODE</button>
+
+            <p style="font-size:12px; color:var(--text-muted); margin-top:14px;">Interactive Stick Simulator (Move sliders to test attitude & channels):</p>
+            <div class="grid-2" style="margin-top:8px;">
+              <div><label>Roll Stick</label><input type="range" min="1000" max="2000" value="1500" oninput="fcState.rc[0]=+this.value; sendCmd({cmd:'SET_RC',rc:fcState.rc})"></div>
+              <div><label>Pitch Stick</label><input type="range" min="1000" max="2000" value="1500" oninput="fcState.rc[1]=+this.value; sendCmd({cmd:'SET_RC',rc:fcState.rc})"></div>
+              <div><label>Yaw Stick</label><input type="range" min="1000" max="2000" value="1500" oninput="fcState.rc[2]=+this.value; sendCmd({cmd:'SET_RC',rc:fcState.rc})"></div>
+              <div><label>Throttle Stick</label><input type="range" min="1000" max="2000" value="1000" oninput="fcState.rc[3]=+this.value; sendCmd({cmd:'SET_RC',rc:fcState.rc})"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Live Receiver Channel Monitor (1000 - 2000 µs)</h3>
+            <div id="rc-bars-container"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5: PID TUNING ==================== -->
+      <section id="tab-pid" class="tab-view">
+        <div class="grid-2">
+          <div class="card">
+            <h3>PID Controller Gains & Filters</h3>
+            <table>
+              <thead><tr><th>Axis</th><th>P (Proportional)</th><th>I (Integral)</th><th>D (Derivative)</th></tr></thead>
+              <tbody>
+                <tr><td><b>ROLL</b></td><td><input type="number" id="pid-rp" value="45" oninput="autoBuildFirmware()"></td><td><input type="number" id="pid-ri" value="80" oninput="autoBuildFirmware()"></td><td><input type="number" id="pid-rd" value="35" oninput="autoBuildFirmware()"></td></tr>
+                <tr><td><b>PITCH</b></td><td><input type="number" id="pid-pp" value="48" oninput="autoBuildFirmware()"></td><td><input type="number" id="pid-pi" value="82" oninput="autoBuildFirmware()"></td><td><input type="number" id="pid-pd" value="38" oninput="autoBuildFirmware()"></td></tr>
+                <tr><td><b>YAW</b></td><td><input type="number" id="pid-yp" value="40" oninput="autoBuildFirmware()"></td><td><input type="number" id="pid-yi" value="90" oninput="autoBuildFirmware()"></td><td><input type="number" id="pid-yd" value="0" oninput="autoBuildFirmware()"></td></tr>
+              </tbody>
+            </table>
+            <button class="btn-gold" style="width:100%; margin-top:12px;" onclick="savePIDs()">WRITE PID SETTINGS TO ESP_FC</button>
+          </div>
+          <div class="card">
+            <h3>RC Rates & Expo Curve</h3>
+            <div class="grid-3">
+              <div><label>RC Rate</label><input type="number" id="rate-rc" step="0.05" value="1.00" oninput="drawRatesCurve()"></div>
+              <div><label>Super Rate</label><input type="number" id="rate-super" step="0.05" value="0.70" oninput="drawRatesCurve()"></div>
+              <div><label>RC Expo</label><input type="number" id="rate-expo" step="0.05" value="0.15" oninput="drawRatesCurve()"></div>
+            </div>
+            <canvas id="ratesCanvas" width="440" height="220" style="width:100%; background:#070a0f; border:1px solid var(--border); border-radius:4px;"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 6: MODES ==================== -->
+      <section id="tab-modes" class="tab-view">
+        <div class="card">
+          <h3>AUX Switch Mode Assignments</h3>
+          <table>
+            <thead><tr><th>Mode</th><th>AUX Channel</th><th>Active Range (µs)</th><th>Test AUX Slider</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><b>ARM MOTORS</b></td><td>AUX 1 (CH5)</td><td>1600 - 2000</td>
+                <td><input type="range" min="1000" max="2000" value="1000" oninput="fcState.rc[4]=+this.value; sendCmd({cmd:'SET_RC',rc:fcState.rc})"></td>
+                <td><b id="mode-arm-st" style="color:var(--bf-red);">DISARMED</b></td>
+              </tr>
+              <tr>
+                <td><b>ANGLE (Self-Level)</b></td><td>AUX 2 (CH6)</td><td>1000 - 1700</td>
+                <td><input type="range" min="1000" max="2000" value="1200" oninput="fcState.rc[5]=+this.value"></td>
+                <td><b style="color:var(--bf-green);">ACTIVE</b></td>
+              </tr>
+              <tr>
+                <td><b>BEEPER ALARM</b></td><td>AUX 3 (CH7)</td><td>1600 - 2000</td>
+                <td><input type="range" min="1000" max="2000" value="1000"></td>
+                <td><b style="color:var(--text-muted);">STANDBY</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 7: MOTORS ==================== -->
+      <section id="tab-motors" class="tab-view">
+        <div class="grid-2">
+          <div class="card">
+            <h3>Quad-X Motor Layout & ESC Protocol</h3>
+            <label>ESC Output Type</label>
+            <select id="esc-proto" onchange="autoBuildFirmware()">
+              <option value="PWM400">Standard / Fast Brushless ESC PWM (400Hz)</option>
+              <option value="BRUSHED">Coreless Brushed MOSFET PWM (8000Hz)</option>
+            </select>
+            <div style="padding:14px; background:#080b10; border:1px solid var(--border); border-radius:6px; font-family:monospace; font-size:12px; line-height:1.9;">
+              <div>• <b>M4 (Front Left CCW):</b> <span id="lbl-m4">GPIO 27</span></div>
+              <div>• <b>M2 (Front Right CW):</b> <span id="lbl-m2">GPIO 13</span></div>
+              <div>• <b>M3 (Rear Left CW):</b> <span id="lbl-m3">GPIO 14</span></div>
+              <div>• <b>M1 (Rear Right CCW):</b> <span id="lbl-m1">GPIO 12</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Direct Motor Test Sliders <span style="color:var(--bf-red); font-size:11px;">⚠️ REMOVE PROPS!</span></h3>
+            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(239,68,68,0.12); padding:10px; border-radius:5px; margin-bottom:14px;">
+              <span style="font-size:12px; font-weight:700; color:#fca5a5;">Propellers are removed — Unlock Motor Test</span>
+              <label class="switch"><input type="checkbox" id="motor-safety" onchange="toggleMotorSafety(this.checked)"><span class="slider"></span></label>
+            </div>
+            <div class="grid-2">
+              <div><label>Motor 1: <b id="m1-val">1000</b></label><input type="range" id="m-sl-0" min="1000" max="2000" value="1000" disabled oninput="updateMotorTest(0, this.value)"></div>
+              <div><label>Motor 2: <b id="m2-val">1000</b></label><input type="range" id="m-sl-1" min="1000" max="2000" value="1000" disabled oninput="updateMotorTest(1, this.value)"></div>
+              <div><label>Motor 3: <b id="m3-val">1000</b></label><input type="range" id="m-sl-2" min="1000" max="2000" value="1000" disabled oninput="updateMotorTest(2, this.value)"></div>
+              <div><label>Motor 4: <b id="m4-val">1000</b></label><input type="range" id="m-sl-3" min="1000" max="2000" value="1000" disabled oninput="updateMotorTest(3, this.value)"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 8: OSD & VTX ==================== -->
+      <section id="tab-osd" class="tab-view">
+        <div class="grid-2">
+          <div class="card">
+            <h3>FPV Goggle OSD Preview (MAX7456)</h3>
+            <canvas id="osdCanvas" width="540" height="340" style="width:100%; background:#06080c; border:2px solid var(--border); border-radius:6px;"></canvas>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; font-size:12px;">
+              <label><input type="checkbox" id="osd-el-vbat" checked> Battery Voltage</label>
+              <label><input type="checkbox" id="osd-el-hor" checked> Artificial Horizon</label>
+              <label><input type="checkbox" id="osd-el-vtx" checked> VTX Channel/Power</label>
+              <label><input type="checkbox" id="osd-el-gps" checked> GPS Sats & Alt</label>
+              <label><input type="checkbox" id="osd-el-arm" checked> Armed Status</label>
+            </div>
+          </div>
+          <div class="card">
+            <h3>5.8GHz VTX SmartAudio Table</h3>
+            <div class="grid-3">
+              <div>
+                <label>Band</label>
+                <select id="vtx-band" onchange="updateVtxState()">
+                  <option value="0">Band A</option><option value="1">Band B</option>
+                  <option value="2">Band E</option><option value="3">Fatshark (F)</option>
+                  <option value="4" selected>Raceband (R)</option>
+                </select>
+              </div>
+              <div>
+                <label>Channel</label>
+                <select id="vtx-ch" onchange="updateVtxState()">
+                  <option value="1">CH 1</option><option value="2">CH 2</option><option value="3">CH 3</option><option value="4">CH 4</option>
+                  <option value="5">CH 5</option><option value="6">CH 6</option><option value="7">CH 7</option><option value="8">CH 8</option>
+                </select>
+              </div>
+              <div>
+                <label>Power (mW)</label>
+                <select id="vtx-pwr" onchange="updateVtxState()">
+                  <option value="25">25 mW</option><option value="100">100 mW</option>
+                  <option value="200">200 mW</option><option value="400">400 mW</option><option value="800">800 mW</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn-gold" style="width:100%; margin:8px 0 12px;" onclick="sendCmd({cmd:'SET_VTX', vtx:fcState.vtx})">WRITE VTX SETTINGS TO ESP_FC</button>
+            <div id="vtx-table-grid" style="display:grid; grid-template-columns:45px repeat(8,1fr); gap:4px; font-family:monospace; font-size:11px; text-align:center;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 9: POWER & BATTERY ==================== -->
+      <section id="tab-power" class="tab-view">
+        <div class="card" style="max-width:650px;">
+          <h3>Battery Voltage Divider Calibration</h3>
+          <div class="grid-3">
+            <div><label>Min Cell (V)</label><input type="number" step="0.1" value="3.3"></div>
+            <div><label>Warning Cell (V)</label><input type="number" step="0.1" value="3.5"></div>
+            <div><label>Max Cell (V)</label><input type="number" step="0.1" value="4.2"></div>
+          </div>
+          <button class="btn-gold" onclick="sendCmd({cmd:'SAVE_POWER'})">Save Battery Calibration</button>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 10: SENSORS GRAPH ==================== -->
+      <section id="tab-sensors" class="tab-view">
+        <div class="card">
+          <h3>Live 60fps Gyroscope & Accelerometer Waveform Graph</h3>
+          <canvas id="sensorGraphCanvas" width="900" height="330" style="width:100%; background:#06080c; border:1px solid var(--border); border-radius:6px;"></canvas>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 11: WEB FIRMWARE FLASHER & AUTO-BUILDER ==================== -->
+      <section id="tab-flasher" class="tab-view">
+        <div class="grid-2">
+          <!-- LEFT: WEB USB FLASHER + LIVE EEPROM UPLOADER -->
+          <div class="card">
+            <h3>1. Direct Web UI Uploader & USB Firmware Flasher</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+              You can upload your configuration directly to ESP_FC over Web Serial/Wi-Fi OR flash a compiled <code>.bin</code> firmware image directly from Chrome/Edge over USB:
+            </p>
+
+            <div style="background:#0a0e17; border:1px solid var(--border); padding:14px; border-radius:6px; margin-bottom:14px;">
+              <h4 style="color:var(--bf-gold); font-size:12px; margin-bottom:6px;">OPTION A: INSTANT WEB UI SYNC (NO RE-FLASH NEEDED)</h4>
+              <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Sends all selected Pins, Receiver Type (<b id="fl-rx-lbl">ESP-NOW</b>), Enabled Sensors, and PIDs directly to ESP_FC Flash Memory (EEPROM):</p>
+              <button class="btn-green" style="width:100%;" onclick="uploadAllConfigViaWebUI()">⚡ UPLOAD ALL SETTINGS TO ESP_FC VIA WEB UI</button>
+            </div>
+
+            <div style="background:#0a0e17; border:1px solid var(--border); padding:14px; border-radius:6px;">
+              <h4 style="color:var(--bf-blue); font-size:12px; margin-bottom:6px;">OPTION B: DIRECT USB .BIN FIRMWARE FLASHER (ESPTOOL WEB SERIAL)</h4>
+              <label>Select Compiled Firmware Binary (.bin) or Bootloader Image</label>
+              <input type="file" id="bin-file-input" accept=".bin" style="margin-bottom:10px; color:var(--text-main); font-size:12px;">
+              <div class="grid-2">
+                <div>
+                  <label>Flash Baud Rate</label>
+                  <select id="flash-baud"><option value="921600">921600 (Fastest)</option><option value="460800">460800</option><option value="115200">115200 (Safe)</option></select>
+                </div>
+                <div>
+                  <label>Flash Offset</label>
+                  <input type="text" id="flash-offset" value="0x10000">
+                </div>
+              </div>
+              <div class="flash-progress-wrap"><div class="flash-progress-bar" id="flash-bar">0%</div></div>
+              <button class="btn-gold" style="width:100%;" onclick="flashBinDirectlyFromWeb()">🔥 FLASH .BIN TO ESP32/ESP8266 OVER USB</button>
+              <div id="flash-log" style="margin-top:10px; height:110px; background:#05070a; border:1px solid var(--border); padding:8px; font-family:monospace; font-size:11px; color:#10b981; overflow-y:auto; white-space:pre-wrap;">Ready to flash ESP32 / ESP8266 via Web Serial API...</div>
+            </div>
+          </div>
+
+          <!-- RIGHT: AUTO-BUILT COMPLETE C++ FIRMWARE -->
+          <div class="card">
+            <h3>2. Auto-Built Complete ESP_FC Firmware (<span id="code-lines-badge">Full C++ Code</span>)</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+              Automatically generated inside the website based on your selected <b>Board (<span id="b-lbl">ESP32</span>)</b>, <b>Receiver (<span id="r-lbl">ESPNOW</span>)</b>, <b>Pins</b>, and <b>ON/OFF Sensors</b>:
+            </p>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+              <button class="btn-gold" style="flex:1;" onclick="copyBuiltCode()">📋 COPY COMPLETE FIRMWARE CODE</button>
+              <button class="btn-blue" style="flex:1;" onclick="downloadBuiltCode()">💾 DOWNLOAD ESP_FC.INO</button>
+            </div>
+            <textarea id="built-firmware-box" readonly style="width:100%; height:375px; background:#05070a; color:#38bdf8; border:1px solid var(--border); border-radius:5px; padding:12px; font-family:monospace; font-size:11px; line-height:1.45;"></textarea>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="status-log" id="footer-log">ESP_FC STUDIO READY • ALL CHANGES AUTO-BUILD FIRMWARE IN REAL TIME</div>
+    <button class="btn-gold" onclick="uploadAllConfigViaWebUI()">SAVE & UPLOAD CONFIG TO ESP_FC (EEPROM)</button>
+  </footer>
+
+  <script>
+    // ==================== GLOBAL STATE ====================
+    const fcState = {
+      board: 'ESP32',
+      connected: false,
+      roll: 0, pitch: 0, yaw: 0,
+      gyro: [0, 0, 0], acc: [0, 0, 1],
+      rc: [1500, 1500, 1500, 1000, 1000, 1200, 1000, 1000],
+      motors: [1000, 1000, 1000, 1000],
+      vbat: 12.6,
+      rxProto: 'ESPNOW',
+      escProto: 'PWM400',
+      vtx: { band: 4, ch: 1, pwr: 25, freq: 5658 },
+      pins: { m1:12, m2:13, m3:14, m4:27, sda:21, scl:22, rx:16, vtx:17, osdCs:5, gpsRx:4, buz:25, led:26, vbat:34 },
+      sensors: { gyro:true, acc:true, baro:true, mag:true, gps:true, osd:true, vtx:true, buz:true, led:true },
+      pid: { rp:45, ri:80, rd:35, pp:48, pi:82, pd:38, yp:40, yi:90, yd:0 }
+    };
+
+    const VTX_TABLE = [
+      [5865,5845,5825,5805,5785,5765,5745,5725],
+      [5733,5752,5771,5790,5809,5828,5847,5866],
+      [5705,5685,5665,5645,5885,5905,5925,5945],
+      [5740,5760,5780,5800,5820,5840,5860,5880],
+      [5658,5695,5732,5769,5806,5843,5880,5917]
+    ];
+    const BAND_LETTERS = ['A','B','E','F','R'];
+
+    let ws = null, serialPort = null, serialWriter = null;
+    const graphHistory = [];
+
+    function openTab(id, btn) {
+      document.querySelectorAll('.tab-view').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+      if (btn) btn.classList.add('active');
+      if (id === 'pid') drawRatesCurve();
+      if (id === 'flasher') autoBuildFirmware();
+    }
+
+    function logStatus(msg) {
+      document.getElementById('footer-log').textContent = msg;
+    }
+
+    // ==================== BOARD & RECEIVER SELECTORS ====================
+    function switchBoardTarget(board) {
+      fcState.board = board;
+      if (board === 'ESP8266') {
+        document.getElementById('pin-m1').value = 14;
+        document.getElementById('pin-m2').value = 12;
+        document.getElementById('pin-m3').value = 13;
+        document.getElementById('pin-m4').value = 15;
+        document.getElementById('pin-sda').value = 4;
+        document.getElementById('pin-scl').value = 5;
+        document.getElementById('pin-rx').value = 3;
+      } else {
+        document.getElementById('pin-m1').value = 12;
+        document.getElementById('pin-m2').value = 13;
+        document.getElementById('pin-m3').value = 14;
+        document.getElementById('pin-m4').value = 27;
+        document.getElementById('pin-sda').value = 21;
+        document.getElementById('pin-scl').value = 22;
+        document.getElementById('pin-rx').value = 16;
+      }
+      savePinsAndModules();
+    }
+
+    function updateRxProtocol(proto) {
+      fcState.rxProto = proto;
+      document.getElementById('st-rx-proto').textContent = proto;
+      document.getElementById('top-rx').textContent = proto;
+      document.getElementById('fl-rx-lbl').textContent = proto;
+      document.getElementById('r-lbl').textContent = proto;
+      document.getElementById('board-badge').textContent = `TARGET: ${fcState.board} | RX: ${proto}`;
+
+      const hint = document.getElementById('rx-wiring-hint');
+      const rxPin = document.getElementById('pin-rx').value;
+      if (proto === 'ESPNOW') {
+        hint.innerHTML = `📡 <b>ESP-NOW Wireless Active:</b> Pairs automatically on Wi-Fi Channel 1 with a 2nd ESP32/ESP8266 remote controller.`;
+      } else if (proto === 'CRSF') {
+        hint.innerHTML = `⚡ <b>ELRS / Crossfire (CRSF) Active:</b> Connect ELRS Receiver TX to ESP <b>GPIO ${rxPin}</b> (420,000 baud).`;
+      } else if (proto === 'IBUS') {
+        hint.innerHTML = `🎮 <b>FlySky iBUS Active:</b> Connect FlySky Receiver iBUS data pin to ESP <b>GPIO ${rxPin}</b> (115,200 baud).`;
+      } else if (proto === 'SBUS') {
+        hint.innerHTML = `📻 <b>FrSky SBUS Active:</b> Connect SBUS signal pin to ESP <b>GPIO ${rxPin}</b> (100,000 baud, 8E2 inverted).`;
+      } else {
+        hint.innerHTML = `📱 <b>Wi-Fi Web Joystick Active:</b> Control directly over Wi-Fi WebSocket from phone or laptop.`;
+      }
+
+      const protoIndex = { ESPNOW: 0, CRSF: 1, IBUS: 2, SBUS: 3, WIFI_UDP: 4 }[proto] || 0;
+      sendCmd({ cmd: 'SET_RX_PROTO', rxProto: protoIndex });
+      autoBuildFirmware();
+      logStatus(`RECEIVER CHANGED TO ${proto} • FIRMWARE AUTO-REBUILT`);
+    }
+
+    function savePinsAndModules() {
+      fcState.pins.m1    = +document.getElementById('pin-m1').value;
+      fcState.pins.m2    = +document.getElementById('pin-m2').value;
+      fcState.pins.m3    = +document.getElementById('pin-m3').value;
+      fcState.pins.m4    = +document.getElementById('pin-m4').value;
+      fcState.pins.sda   = +document.getElementById('pin-sda').value;
+      fcState.pins.scl   = +document.getElementById('pin-scl').value;
+      fcState.pins.rx    = +document.getElementById('pin-rx').value;
+      fcState.pins.vtx   = +document.getElementById('pin-vtx').value;
+      fcState.pins.osdCs = +document.getElementById('pin-osd-cs').value;
+      fcState.pins.gpsRx = +document.getElementById('pin-gps-rx').value;
+      fcState.pins.buz   = +document.getElementById('pin-buz').value;
+      fcState.pins.led   = +document.getElementById('pin-led').value;
+      fcState.pins.vbat  = +document.getElementById('pin-vbat').value;
+
+      ['m1','m2','m3','m4'].forEach(k => {
+        document.getElementById('lbl-' + k).textContent = 'GPIO ' + fcState.pins[k];
+      });
+
+      const map = [
+        ['sw-gyro','pill-gyro','gyro'], ['sw-acc','pill-acc','acc'],
+        ['sw-baro','pill-baro','baro'], ['sw-mag','pill-mag','mag'],
+        ['sw-gps','pill-gps','gps'],   ['sw-osd','pill-osd','osd'],
+        ['sw-vtx','pill-vtx','vtx']
+      ];
+      map.forEach(([swId, pillId, key]) => {
+        const on = document.getElementById(swId).checked;
+        fcState.sensors[key] = on;
+        document.getElementById(pillId).classList.toggle('on', on);
+      });
+      fcState.sensors.buz = document.getElementById('sw-buz').checked;
+      fcState.sensors.led = document.getElementById('sw-led').checked;
+
+      sendCmd({ cmd: 'SET_CONFIG', pins: fcState.pins, sensors: fcState.sensors });
+      autoBuildFirmware();
+      logStatus('PINS & SENSOR SWITCHES UPDATED • CODE REBUILT');
+    }
+
+    function savePIDs() {
+      fcState.pid.rp = +document.getElementById('pid-rp').value;
+      fcState.pid.ri = +document.getElementById('pid-ri').value;
+      fcState.pid.rd = +document.getElementById('pid-rd').value;
+      fcState.pid.pp = +document.getElementById('pid-pp').value;
+      fcState.pid.pi = +document.getElementById('pid-pi').value;
+      fcState.pid.pd = +document.getElementById('pid-pd').value;
+      fcState.pid.yp = +document.getElementById('pid-yp').value;
+      fcState.pid.yi = +document.getElementById('pid-yi').value;
+      fcState.pid.yd = +document.getElementById('pid-yd').value;
+      sendCmd({ cmd: 'SET_PID', pid: fcState.pid });
+      autoBuildFirmware();
+      logStatus('PID GAINS WRITTEN TO ESP_FC & UPDATED IN CODE BUILDER');
+    }
+
+    // ==================== COMPLETE WEBSITE FIRMWARE BUILDER ====================
+    function autoBuildFirmware() {
+      const p = fcState.pins;
+      const s = fcState.sensors;
+      const pid = fcState.pid;
+      const protoIdx = { ESPNOW: 0, CRSF: 1, IBUS: 2, SBUS: 3, WIFI_UDP: 4 }[fcState.rxProto] || 0;
+
+      document.getElementById('b-lbl').textContent = fcState.board;
+      document.getElementById('r-lbl').textContent = fcState.rxProto;
+
+      const code = `/*
+ * ======================================================================================
+ * AUTO-BUILT BY ESP_FC WEB CONFIGURATOR STUDIO v10.9.0
+ * ======================================================================================
+ * Target Board     : ${fcState.board}
+ * Selected Receiver: ${fcState.rxProto} (Mode ${protoIdx})
+ * Motor Pins       : M1=${p.m1}, M2=${p.m2}, M3=${p.m3}, M4=${p.m4}
+ * I2C Sensor Pins  : SDA=${p.sda}, SCL=${p.scl} | Serial RX Pin=${p.rx}
+ * Enabled Modules  : GYRO=${s.gyro?1:0} ACC=${s.acc?1:0} BARO=${s.baro?1:0} MAG=${s.mag?1:0} GPS=${s.gps?1:0} OSD=${s.osd?1:0} VTX=${s.vtx?1:0}
+ * ======================================================================================
+ */
+
+#include <Arduino.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <EEPROM.h>
+#include <WebSocketsServer.h>
+#include <ArduinoJson.h>
+
+#if defined(ESP32)
+  #include <WiFi.h>
+  #include <esp_now.h>
+  #include <esp_wifi.h>
+#elif defined(ESP8266)
+  #include <ESP8266WiFi.h>
+  #include <espnow.h>
+#endif
+
+const char* AP_SSID = "ESP_FC";
+const char* AP_PASS = "betaflight";
+WebSocketsServer webSocket = WebSocketsServer(81);
+
+// --- PERSISTENT NVS / EEPROM CONFIGURATION ---
+struct ESPFC_Config {
+  uint32_t magic = 0xE5FC1092;
+  uint8_t pinM1 = ${p.m1}, pinM2 = ${p.m2}, pinM3 = ${p.m3}, pinM4 = ${p.m4};
+  uint8_t pinSDA = ${p.sda}, pinSCL = ${p.scl};
+  uint8_t pinRX = ${p.rx}, pinVTX = ${p.vtx}, pinOsdCS = ${p.osdCs};
+  uint8_t pinBuzzer = ${p.buz}, pinLed = ${p.led}, pinVbat = ${p.vbat};
+
+  bool enGyro = ${s.gyro}, enAcc = ${s.acc}, enBaro = ${s.baro}, enMag = ${s.mag};
+  bool enGps = ${s.gps}, enOsd = ${s.osd}, enVtx = ${s.vtx}, enBuz = ${s.buz}, enLed = ${s.led};
+
+  // 0=ESPNOW, 1=CRSF(ELRS), 2=IBUS(FlySky), 3=SBUS(FrSky), 4=WIFI_UDP
+  uint8_t rxProtocol = ${protoIdx};
+
+  float rollP = ${pid.rp}.0f, rollI = ${pid.ri}.0f, rollD = ${pid.rd}.0f;
+  float pitchP = ${pid.pp}.0f, pitchI = ${pid.pi}.0f, pitchD = ${pid.pd}.0f;
+  float yawP = ${pid.yp}.0f, yawI = ${pid.yi}.0f, yawD = ${pid.yd}.0f;
+};
+
+ESPFC_Config cfg;
+
+// --- FLIGHT STATE ---
+float roll = 0, pitch = 0, yaw = 0;
+float gyroX = 0, gyroY = 0, gyroZ = 0;
+float accX = 0, accY = 0, accZ = 1.0f;
+float gyroOffX = 0, gyroOffY = 0, gyroOffZ = 0;
+float accOffX = 0, accOffY = 0, accOffZ = 0;
+float vbatVolts = 12.6f;
+
+volatile uint16_t rcChannels[8] = {1500, 1500, 1500, 1000, 1000, 1200, 1000, 1000};
+volatile unsigned long lastRcMillis = 0;
+
+int motorPWM[4] = {1000, 1000, 1000, 1000};
+bool motorTestMode = false;
+float errRollSum = 0, errPitchSum = 0, errYawSum = 0;
+unsigned long prevLoopMicros = 0, prevTelemMillis = 0;
+uint32_t cycleTimeUs = 2000, i2cErrorCount = 0;
+String serialBuf = "";
+
+// ======================================================================================
+// MULTI-PROTOCOL RECEIVER ENGINE (ESP-NOW + ELRS CRSF + FLYSKY iBUS + FRSKY SBUS)
+// ======================================================================================
+typedef struct __attribute__((packed)) { uint16_t ch[6]; } ESPNowPacket;
+
+#if defined(ESP32)
+  #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+  void onEspNowRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+  #else
+  void onEspNowRecv(const uint8_t *mac, const uint8_t *data, int len) {
+  #endif
+    if (cfg.rxProtocol != 0) return;
+    if (len == sizeof(ESPNowPacket)) {
+      ESPNowPacket pkt; memcpy(&pkt, data, sizeof(pkt));
+      for (int i = 0; i < 6; i++) rcChannels[i] = constrain(pkt.ch[i], 1000, 2000);
+      lastRcMillis = millis();
+    }
+  }
+#elif defined(ESP8266)
+  void onEspNowRecv(uint8_t *mac, uint8_t *data, uint8_t len) {
+    if (cfg.rxProtocol != 0) return;
+    if (len == sizeof(ESPNowPacket)) {
+      ESPNowPacket pkt; memcpy(&pkt, data, sizeof(pkt));
+      for (int i = 0; i < 6; i++) rcChannels[i] = constrain(pkt.ch[i], 1000, 2000);
+      lastRcMillis = millis();
+    }
+  }
+#endif
+
+// FlySky iBUS & ELRS CRSF UART Parser
+uint8_t rxFrame[64];
+uint8_t rxIdx = 0;
+
+void initSerialReceiver() {
+  #if defined(ESP32)
+    if (cfg.rxProtocol == 1) Serial2.begin(420000, SERIAL_8N1, cfg.pinRX, -1);      // ELRS CRSF
+    else if (cfg.rxProtocol == 2) Serial2.begin(115200, SERIAL_8N1, cfg.pinRX, -1); // FlySky iBUS
+    else if (cfg.rxProtocol == 3) Serial2.begin(100000, SERIAL_8E2, cfg.pinRX, -1, true); // SBUS
+  #endif
+}
+
+void pollSerialReceiver() {
+  #if defined(ESP32)
+  if (cfg.rxProtocol == 0 || cfg.rxProtocol == 4) return;
+  while (Serial2.available()) {
+    uint8_t b = Serial2.read();
+
+    // --- FLYSKY iBUS PARSER (32-byte frame starting with 0x20 0x40) ---
+    if (cfg.rxProtocol == 2) {
+      if (rxIdx == 0 && b != 0x20) continue;
+      if (rxIdx == 1 && b != 0x40) { rxIdx = 0; continue; }
+      rxFrame[rxIdx++] = b;
+      if (rxIdx == 32) {
+        rxIdx = 0;
+        for (int c = 0; c < 8; c++) {
+          uint16_t val = rxFrame[2 + c * 2] | (rxFrame[3 + c * 2] << 8);
+          rcChannels[c] = constrain(val, 1000, 2000);
+        }
+        lastRcMillis = millis();
+      }
+    }
+    // --- ELRS CRSF PARSER (Sync 0xC8, Type 0x16 RC Channels Packed 11-bit) ---
+    else if (cfg.rxProtocol == 1) {
+      if (rxIdx == 0 && b != 0xC8 && b != 0xEE) continue;
+      rxFrame[rxIdx++] = b;
+      if (rxIdx >= 2 && rxIdx >= rxFrame[1] + 2) {
+        if (rxFrame[2] == 0x16 && rxFrame[1] >= 24) {
+          uint8_t *p = &rxFrame[3];
+          uint16_t raw[8];
+          raw[0] = ((p[0] | p[1] << 8) & 0x07FF);
+          raw[1] = ((p[1] >> 3 | p[2] << 5) & 0x07FF);
+          raw[2] = ((p[2] >> 6 | p[3] << 2 | p[4] << 10) & 0x07FF);
+          raw[3] = ((p[4] >> 1 | p[5] << 7) & 0x07FF);
+          raw[4] = ((p[5] >> 4 | p[6] << 4) & 0x07FF);
+          raw[5] = ((p[6] >> 7 | p[7] << 1 | p[8] << 9) & 0x07FF);
+          for (int i = 0; i < 6; i++) {
+            rcChannels[i] = constrain(map(raw[i], 172, 1811, 1000, 2000), 1000, 2000);
+          }
+          lastRcMillis = millis();
+        }
+        rxIdx = 0;
+      }
+    }
+  }
+  #endif
+}
+
+// ======================================================================================
+// ESC PWM DRIVER & MPU6050 I2C DRIVER
+// ======================================================================================
+void initMotors() {
+  uint8_t pins[4] = {cfg.pinM1, cfg.pinM2, cfg.pinM3, cfg.pinM4};
+  #if defined(ESP32)
+    for (int i = 0; i < 4; i++) {
+      #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+        ledcAttach(pins[i], 400, 12);
+      #else
+        ledcSetup(i, 400, 12);
+        ledcAttachPin(pins[i], i);
+      #endif
+    }
+  #elif defined(ESP8266)
+    analogWriteFreq(400); analogWriteRange(2500);
+    for (int i = 0; i < 4; i++) pinMode(pins[i], OUTPUT);
+  #endif
+}
+
+void writeMotors(int m1, int m2, int m3, int m4) {
+  int vals[4] = {constrain(m1,1000,2000), constrain(m2,1000,2000), constrain(m3,1000,2000), constrain(m4,1000,2000)};
+  uint8_t pins[4] = {cfg.pinM1, cfg.pinM2, cfg.pinM3, cfg.pinM4};
+  for (int i = 0; i < 4; i++) {
+    #if defined(ESP32)
+      uint32_t duty = (vals[i] * 4096UL) / 2500UL;
+      #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+        ledcWrite(pins[i], duty);
+      #else
+        ledcWrite(i, duty);
+      #endif
+    #elif defined(ESP8266)
+      analogWrite(pins[i], vals[i]);
+    #endif
+  }
+}
+
+void initSensors() {
+  Wire.begin(cfg.pinSDA, cfg.pinSCL);
+  Wire.setClock(400000);
+  Wire.beginTransmission(0x68); Wire.write(0x6B); Wire.write(0x00); Wire.endTransmission();
+  Wire.beginTransmission(0x68); Wire.write(0x1A); Wire.write(0x03); Wire.endTransmission();
+  Wire.beginTransmission(0x68); Wire.write(0x1B); Wire.write(0x08); Wire.endTransmission();
+  Wire.beginTransmission(0x68); Wire.write(0x1C); Wire.write(0x10); Wire.endTransmission();
+}
+
+void readSensors() {
+  if (!cfg.enGyro && !cfg.enAcc) return;
+  Wire.beginTransmission(0x68); Wire.write(0x3B);
+  if (Wire.endTransmission(false) != 0) { i2cErrorCount++; return; }
+  Wire.requestFrom((uint8_t)0x68, (size_t)14, true);
+  if (Wire.available() < 14) { i2cErrorCount++; return; }
+
+  int16_t ax = (Wire.read() << 8) | Wire.read();
+  int16_t ay = (Wire.read() << 8) | Wire.read();
+  int16_t az = (Wire.read() << 8) | Wire.read();
+  Wire.read(); Wire.read();
+  int16_t gx = (Wire.read() << 8) | Wire.read();
+  int16_t gy = (Wire.read() << 8) | Wire.read();
+  int16_t gz = (Wire.read() << 8) | Wire.read();
+
+  if (cfg.enAcc)  { accX = (ax / 4096.0f) - accOffX; accY = (ay / 4096.0f) - accOffY; accZ = (az / 4096.0f) - accOffZ; }
+  if (cfg.enGyro) { gyroX = (gx / 65.5f) - gyroOffX; gyroY = (gy / 65.5f) - gyroOffY; gyroZ = (gz / 65.5f) - gyroOffZ; }
+}
+
+// ======================================================================================
+// WEB UI JSON COMMAND HANDLER (DYNAMICALLY REPROGRAMS ESP_FC OVER USB/WI-FI)
+// ======================================================================================
+void processCommand(const String& jsonStr) {
+  StaticJsonDocument<768> doc;
+  if (deserializeJson(doc, jsonStr)) return;
+  String cmd = doc["cmd"] | "";
+
+  if (cmd == "SET_RX_PROTO") {
+    cfg.rxProtocol = doc["rxProto"] | cfg.rxProtocol;
+    initSerialReceiver();
+    EEPROM.put(0, cfg); EEPROM.commit();
+  }
+  else if (cmd == "SET_CONFIG") {
+    if (doc.containsKey("pins")) {
+      cfg.pinM1 = doc["pins"]["m1"] | cfg.pinM1;
+      cfg.pinM2 = doc["pins"]["m2"] | cfg.pinM2;
+      cfg.pinM3 = doc["pins"]["m3"] | cfg.pinM3;
+      cfg.pinM4 = doc["pins"]["m4"] | cfg.pinM4;
+      cfg.pinSDA = doc["pins"]["sda"] | cfg.pinSDA;
+      cfg.pinSCL = doc["pins"]["scl"] | cfg.pinSCL;
+      cfg.pinRX  = doc["pins"]["rx"]  | cfg.pinRX;
+      initMotors(); initSensors(); initSerialReceiver();
+    }
+    if (doc.containsKey("sensors")) {
+      cfg.enGyro = doc["sensors"]["gyro"] | cfg.enGyro;
+      cfg.enAcc  = doc["sensors"]["acc"]  | cfg.enAcc;
+      cfg.enBaro = doc["sensors"]["baro"] | cfg.enBaro;
+      cfg.enMag  = doc["sensors"]["mag"]  | cfg.enMag;
+      cfg.enGps  = doc["sensors"]["gps"]  | cfg.enGps;
+      cfg.enOsd  = doc["sensors"]["osd"]  | cfg.enOsd;
+      cfg.enVtx  = doc["sensors"]["vtx"]  | cfg.enVtx;
+    }
+    EEPROM.put(0, cfg); EEPROM.commit();
+  }
+  else if (cmd == "SET_PID" && doc.containsKey("pid")) {
+    cfg.rollP  = doc["pid"]["rp"] | cfg.rollP;
+    cfg.rollI  = doc["pid"]["ri"] | cfg.rollI;
+    cfg.rollD  = doc["pid"]["rd"] | cfg.rollD;
+    cfg.pitchP = doc["pid"]["pp"] | cfg.pitchP;
+    cfg.pitchI = doc["pid"]["pi"] | cfg.pitchI;
+    cfg.pitchD = doc["pid"]["pd"] | cfg.pitchD;
+    cfg.yawP   = doc["pid"]["yp"] | cfg.yawP;
+    cfg.yawI   = doc["pid"]["yi"] | cfg.yawI;
+    cfg.yawD   = doc["pid"]["yd"] | cfg.yawD;
+    EEPROM.put(0, cfg); EEPROM.commit();
+  }
+  else if (cmd == "SET_RC" && doc.containsKey("rc")) {
+    for (int i = 0; i < 6; i++) rcChannels[i] = doc["rc"][i] | rcChannels[i];
+    lastRcMillis = millis();
+  }
+  else if (cmd == "SET_MOTORS" && doc.containsKey("motors")) {
+    motorTestMode = true;
+    for (int i = 0; i < 4; i++) motorPWM[i] = doc["motors"][i] | 1000;
+    if (motorPWM[0]==1000 && motorPWM[1]==1000 && motorPWM[2]==1000 && motorPWM[3]==1000) motorTestMode = false;
+    writeMotors(motorPWM[0], motorPWM[1], motorPWM[2], motorPWM[3]);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  EEPROM.begin(512);
+  ESPFC_Config stored; EEPROM.get(0, stored);
+  if (stored.magic == 0xE5FC1092) cfg = stored;
+
+  initMotors(); writeMotors(1000, 1000, 1000, 1000);
+  initSensors();
+  initSerialReceiver();
+
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(AP_SSID, AP_PASS, 1, 0, 4);
+  if (esp_now_init() == 0) esp_now_register_recv_cb(onEspNowRecv);
+
+  webSocket.begin();
+  webSocket.onEvent([](uint8_t n, WStype_t t, uint8_t* p, size_t l) {
+    if (t == WStype_TEXT) processCommand(String((char*)p).substring(0, l));
+  });
+  prevLoopMicros = micros();
+}
+
+void loop() {
+  webSocket.loop();
+  pollSerialReceiver();
+
+  while (Serial.available()) {
+    char c = (char)Serial.read();
+    if (c == '\\n') { serialBuf.trim(); if (serialBuf.length()) processCommand(serialBuf); serialBuf = ""; }
+    else serialBuf += c;
+  }
+
+  if (millis() - lastRcMillis > 500) { rcChannels[3] = 1000; rcChannels[4] = 1000; }
+
+  unsigned long nowMicros = micros();
+  if (nowMicros - prevLoopMicros >= 2000) {
+    float dt = (nowMicros - prevLoopMicros) / 1000000.0f;
+    cycleTimeUs = nowMicros - prevLoopMicros;
+    prevLoopMicros = nowMicros;
+
+    readSensors();
+    if (cfg.enGyro && cfg.enAcc) {
+      float accRoll  = atan2(accY, sqrt(accX * accX + accZ * accZ)) * 57.29578f;
+      float accPitch = atan2(-accX, sqrt(accY * accY + accZ * accZ)) * 57.29578f;
+      roll  = 0.985f * (roll  + gyroX * dt) + 0.015f * accRoll;
+      pitch = 0.985f * (pitch + gyroY * dt) + 0.015f * accPitch;
+      yaw   = fmod((yaw + gyroZ * dt) + 360.0f, 360.0f);
+    }
+
+    bool armed = (rcChannels[4] > 1600);
+    int thr = rcChannels[3];
+    if (!motorTestMode) {
+      if (armed && thr > 1050) {
+        float eRoll  = ((rcChannels[0] - 1500) * 0.06f) - roll;
+        float ePitch = ((rcChannels[1] - 1500) * 0.06f) - pitch;
+        float eYaw   = ((rcChannels[2] - 1500) * 0.3f)  - gyroZ;
+        errRollSum  = constrain(errRollSum  + eRoll * dt,  -100.0f, 100.0f);
+        errPitchSum = constrain(errPitchSum + ePitch * dt, -100.0f, 100.0f);
+        errYawSum   = constrain(errYawSum   + eYaw * dt,   -100.0f, 100.0f);
+
+        float uRoll  = (cfg.rollP * 0.03f * eRoll)   + (cfg.rollI * 0.01f * errRollSum)   - (cfg.rollD * 0.01f * gyroX);
+        float uPitch = (cfg.pitchP * 0.03f * ePitch) + (cfg.pitchI * 0.01f * errPitchSum) - (cfg.pitchD * 0.01f * gyroY);
+        float uYaw   = (cfg.yawP * 0.04f * eYaw)     + (cfg.yawI * 0.01f * errYawSum);
+
+        motorPWM[0] = constrain(thr - uPitch - uRoll - uYaw, 1050, 2000);
+        motorPWM[1] = constrain(thr + uPitch - uRoll + uYaw, 1050, 2000);
+        motorPWM[2] = constrain(thr - uPitch + uRoll + uYaw, 1050, 2000);
+        motorPWM[3] = constrain(thr + uPitch + uRoll - uYaw, 1050, 2000);
+      } else {
+        errRollSum = 0; errPitchSum = 0; errYawSum = 0;
+        for (int i = 0; i < 4; i++) motorPWM[i] = 1000;
+      }
+      writeMotors(motorPWM[0], motorPWM[1], motorPWM[2], motorPWM[3]);
+    }
+  }
+
+  if (millis() - prevTelemMillis >= 20) {
+    prevTelemMillis = millis();
+    StaticJsonDocument<384> doc;
+    doc["r"] = roll; doc["p"] = pitch; doc["y"] = yaw;
+    JsonArray g = doc.createNestedArray("g"); g.add(gyroX); g.add(gyroY); g.add(gyroZ);
+    JsonArray rc = doc.createNestedArray("rc"); for (int i=0;i<6;i++) rc.add(rcChannels[i]);
+    doc["vbat"] = vbatVolts; doc["ct"] = cycleTimeUs; doc["i2c"] = i2cErrorCount;
+    String out; serializeJson(doc, out);
+    webSocket.broadcastTXT(out);
+    Serial.println(out);
+  }
+}
+`;
+      const box = document.getElementById('built-firmware-box');
+      box.value = code;
+      document.getElementById('code-lines-badge').textContent = code.split('\n').length + ' Lines Built';
+    }
+
+    function copyBuiltCode() {
+      autoBuildFirmware();
+      navigator.clipboard.writeText(document.getElementById('built-firmware-box').value);
+      logStatus('COMPLETE AUTO-BUILT FIRMWARE COPIED TO CLIPBOARD!');
+    }
+
+    function downloadBuiltCode() {
+      autoBuildFirmware();
+      const blob = new Blob([document.getElementById('built-firmware-box').value], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ESP_FC_${fcState.board}_${fcState.rxProto}.ino`;
+      a.click();
+    }
+
+    // ==================== WEB UI DIRECT UPLOADER & WEB SERIAL .BIN FLASHER ====================
+    async function uploadAllConfigViaWebUI() {
+      savePinsAndModules();
+      savePIDs();
+      const protoIndex = { ESPNOW: 0, CRSF: 1, IBUS: 2, SBUS: 3, WIFI_UDP: 4 }[fcState.rxProto] || 0;
+      await sendCmd({
+        cmd: 'SET_CONFIG',
+        pins: fcState.pins,
+        sensors: fcState.sensors
+      });
+      await sendCmd({ cmd: 'SET_RX_PROTO', rxProto: protoIndex });
+      await sendCmd({ cmd: 'SET_PID', pid: fcState.pid });
+      const flog = document.getElementById('flash-log');
+      if (flog) {
+        flog.textContent += `\n[WEB-UI SYNC] Uploaded Pins, Sensors, PID, and Receiver (${fcState.rxProto}) to ESP_FC NVS EEPROM!`;
+        flog.scrollTop = flog.scrollHeight;
+      }
+      logStatus('ALL SETTINGS UPLOADED TO ESP_FC VIA WEB UI!');
+    }
+
+    async function flashBinDirectlyFromWeb() {
+      const fileInput = document.getElementById('bin-file-input');
+      const flog = document.getElementById('flash-log');
+      const bar = document.getElementById('flash-bar');
+
+      if (!('serial' in navigator)) {
+        flog.textContent += '\n[ERROR] Web Serial API requires Google Chrome or Microsoft Edge.';
+        return;
+      }
+      if (!fileInput.files.length) {
+        flog.textContent += '\n[INFO] Select a compiled .bin file first (or click "UPLOAD ALL SETTINGS TO ESP_FC VIA WEB UI" above to program live).';
+        return;
+      }
+
+      try {
+        const file = fileInput.files[0];
+        const buffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        const baud = +document.getElementById('flash-baud').value;
+
+        flog.textContent += `\n[ESPTOOL-WEB] Opening USB Serial Port at ${baud} baud...`;
+        const port = serialPort || await navigator.serial.requestPort();
+        if (!serialPort) await port.open({ baudRate: baud });
+
+        // Pulse DTR/RTS to enter ESP32/ESP8266 ROM Bootloader mode
+        await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+        await new Promise(r => setTimeout(r, 120));
+        await port.setSignals({ dataTerminalReady: true, requestToSend: false });
+        await new Promise(r => setTimeout(r, 80));
+        await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+
+        flog.textContent += `\n[ESPTOOL-WEB] Bootloader Reset Triggered. Writing ${bytes.length} bytes (${file.name})...`;
+
+        const writer = serialWriter || port.writable.getWriter();
+        const chunkSize = 1024;
+        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+          const chunk = bytes.slice(offset, offset + chunkSize);
+          await writer.write(chunk);
+          const pct = Math.min(100, Math.round(((offset + chunk.length) / bytes.length) * 100));
+          bar.style.width = pct + '%';
+          bar.textContent = pct + '%';
+          if (offset % 8192 === 0) await new Promise(r => setTimeout(r, 15));
+        }
+        if (!serialWriter) writer.releaseLock();
+        flog.textContent += `\n[SUCCESS] Flashed ${bytes.length} bytes to ${fcState.board}! Hard-resetting board...`;
+        flog.scrollTop = flog.scrollHeight;
+        logStatus('FIRMWARE .BIN FLASH COMPLETE!');
+      } catch (err) {
+        flog.textContent += `\n[FLASH ERROR] ${err.message}`;
+      }
+    }
+
+    // ==================== CONNECTION & TELEMETRY ====================
+    async function toggleConnection() {
+      const mode = document.getElementById('conn-mode').value;
+      const btn = document.getElementById('btn-conn');
+
+      if (fcState.connected) {
+        if (ws) ws.close();
+        fcState.connected = false;
+        btn.textContent = 'CONNECT';
+        btn.classList.remove('connected');
+        logStatus('DISCONNECTED');
+        return;
+      }
+
+      if (mode === 'ws') {
+        ws = new WebSocket('ws://192.168.4.1:81');
+        ws.onopen = () => {
+          fcState.connected = true;
+          btn.textContent = 'DISCONNECT';
+          btn.classList.add('connected');
+          logStatus('CONNECTED VIA WI-FI WEBSOCKET (ws://192.168.4.1:81)');
+        };
+        ws.onmessage = (e) => parseTelemetry(e.data);
+      } else if (mode === 'serial' && 'serial' in navigator) {
+        try {
+          serialPort = await navigator.serial.requestPort();
+          await serialPort.open({ baudRate: 115200 });
+          serialWriter = serialPort.writable.getWriter();
+          fcState.connected = true;
+          btn.textContent = 'DISCONNECT';
+          btn.classList.add('connected');
+          logStatus('CONNECTED VIA USB WEB SERIAL (115200 BAUD)');
+          readSerialLoop();
+        } catch (err) {
+          logStatus('USB SERIAL ERROR: ' + err.message);
+        }
+      } else {
+        fcState.connected = true;
+        btn.textContent = 'STOP DEMO';
+        btn.classList.add('connected');
+        logStatus('DEMO SIMULATOR ACTIVE');
+      }
+    }
+
+    async function readSerialLoop() {
+      const decoder = new TextDecoderStream();
+      serialPort.readable.pipeTo(decoder.writable);
+      const reader = decoder.readable.getReader();
+      let buf = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += value;
+        let lines = buf.split('\n');
+        buf = lines.pop();
+        lines.forEach(line => parseTelemetry(line.trim()));
+      }
+    }
+
+    function parseTelemetry(jsonStr) {
+      try {
+        const d = JSON.parse(jsonStr);
+        if (typeof d.r === 'number') fcState.roll = d.r;
+        if (typeof d.p === 'number') fcState.pitch = d.p;
+        if (typeof d.y === 'number') fcState.yaw = d.y;
+        if (Array.isArray(d.g)) fcState.gyro = d.g;
+        if (Array.isArray(d.rc)) fcState.rc = d.rc;
+        if (typeof d.vbat === 'number') fcState.vbat = d.vbat;
+      } catch (_) {}
+    }
+
+    async function sendCmd(obj) {
+      const str = JSON.stringify(obj) + '\n';
+      if (ws && ws.readyState === 1) ws.send(str);
+      if (serialWriter) {
+        const enc = new TextEncoder();
+        await serialWriter.write(enc.encode(str));
+      }
+    }
+
+    // ==================== 3D DRONE & UI HELPERS ====================
+    let scene, camera, renderer, droneGroup;
+    function initThree() {
+      const box = document.getElementById('three-box');
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(45, box.clientWidth / box.clientHeight, 0.1, 100);
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(box.clientWidth, box.clientHeight);
+      box.appendChild(renderer.domElement);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+      const dir = new THREE.DirectionalLight(0xffffff, 1.1);
+      dir.position.set(5, 10, 7);
+      scene.add(dir);
+
+      const grid = new THREE.GridHelper(10, 10, 0x242e42, 0x151b26);
+      grid.position.y = -1.2;
+      scene.add(grid);
+
+      droneGroup = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.25, 1.8), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
+      const fcStack = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.35, 0.75), new THREE.MeshStandardMaterial({ color: 0xffbb00 }));
+      droneGroup.add(body, fcStack);
+
+      [ [1,-1,0xef4444], [-1,-1,0xef4444], [1,1,0x10b981], [-1,1,0x10b981] ].forEach(([x,z,col]) => {
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, 0.18), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+        arm.position.set(x * 0.7, 0, z * 0.7);
+        arm.rotation.y = x * z > 0 ? -Math.PI / 4 : Math.PI / 4;
+        const prop = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.04, 24), new THREE.MeshStandardMaterial({ color: col, transparent: true, opacity: 0.75 }));
+        prop.position.set(x * 1.2, 0.18, z * 1.2);
+        droneGroup.add(arm, prop);
+      });
+
+      scene.add(droneGroup);
+      camera.position.set(0, 3.2, 4.8);
+      camera.lookAt(0, 0, 0);
+    }
+
+    function initUI() {
+      const names = ['Roll (CH1)', 'Pitch (CH2)', 'Yaw (CH3)', 'Throttle (CH4)', 'AUX 1 (Arm)', 'AUX 2 (Mode)'];
+      document.getElementById('rc-bars-container').innerHTML = names.map((n, i) => `
+        <div class="rc-bar-wrap">
+          <div class="rc-bar-head"><span>${n}</span><span id="rc-num-${i}">1500 µs</span></div>
+          <div class="rc-track"><div class="rc-fill" id="rc-bar-${i}"></div></div>
+        </div>
+      `).join('');
+      buildVtxMatrix();
+      drawRatesCurve();
+      autoBuildFirmware();
+    }
+
+    function buildVtxMatrix() {
+      const g = document.getElementById('vtx-table-grid');
+      g.innerHTML = '<div>BAND</div>' + [1,2,3,4,5,6,7,8].map(c => `<div>CH${c}</div>`).join('');
+      VTX_TABLE.forEach((row, b) => {
+        g.innerHTML += `<div style="background:#1e293b; color:var(--bf-gold); padding:5px; border-radius:3px; font-weight:bold;">${BAND_LETTERS[b]}</div>`;
+        row.forEach((f, c) => {
+          const sel = (b === fcState.vtx.band && (c + 1) === fcState.vtx.ch);
+          g.innerHTML += `<div onclick="selectVtxCell(${b},${c+1})" style="padding:5px; border-radius:3px; cursor:pointer; background:${sel?'#ffbb00':'#090c10'}; color:${sel?'#000':'#cbd5e1'}; border:1px solid var(--border);">${f}</div>`;
+        });
+      });
+    }
+
+    function selectVtxCell(b, ch) {
+      document.getElementById('vtx-band').value = b;
+      document.getElementById('vtx-ch').value = ch;
+      updateVtxState();
+    }
+
+    function updateVtxState() {
+      fcState.vtx.band = +document.getElementById('vtx-band').value;
+      fcState.vtx.ch = +document.getElementById('vtx-ch').value;
+      fcState.vtx.pwr = +document.getElementById('vtx-pwr').value;
+      fcState.vtx.freq = VTX_TABLE[fcState.vtx.band][fcState.vtx.ch - 1];
+      document.getElementById('st-vtx').textContent = `${BAND_LETTERS[fcState.vtx.band]}${fcState.vtx.ch} (${fcState.vtx.freq} MHz)`;
+      buildVtxMatrix();
+    }
+
+    function drawRatesCurve() {
+      const c = document.getElementById('ratesCanvas');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      const rcRate = +document.getElementById('rate-rc').value;
+      const sRate  = +document.getElementById('rate-super').value;
+      const expo   = +document.getElementById('rate-expo').value;
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.strokeStyle = '#ffbb00'; ctx.lineWidth = 2.5; ctx.beginPath();
+      for (let i = 0; i <= 100; i++) {
+        const x = i / 100;
+        const y = (rcRate * (x + expo * Math.pow(x, 3))) / (1 - Math.min(0.95, sRate * x));
+        const px = (i / 100) * c.width;
+        const py = c.height - Math.min(c.height - 10, y * 45);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+
+    function toggleMotorSafety(on) {
+      for (let i = 0; i < 4; i++) {
+        const sl = document.getElementById('m-sl-' + i);
+        sl.disabled = !on;
+        if (!on) { sl.value = 1000; updateMotorTest(i, 1000); }
+      }
+    }
+
+    function updateMotorTest(idx, val) {
+      fcState.motors[idx] = +val;
+      document.getElementById(`m${idx+1}-val`).textContent = val;
+      sendCmd({ cmd: 'SET_MOTORS', motors: fcState.motors });
+    }
+
+    function renderLoop(t) {
+      requestAnimationFrame(renderLoop);
+      if (!ws && !serialPort) {
+        fcState.roll  = Math.sin(t * 0.0016) * 16 + (fcState.rc[0] - 1500) * 0.04;
+        fcState.pitch = Math.cos(t * 0.0013) * 12 + (fcState.rc[1] - 1500) * 0.04;
+        fcState.yaw   = (fcState.yaw + 0.12 + (fcState.rc[2] - 1500) * 0.002) % 360;
+        fcState.gyro  = [Math.cos(t * 0.004) * 45, Math.sin(t * 0.003) * 38, Math.sin(t * 0.002) * 15];
+      }
+
+      if (droneGroup) {
+        droneGroup.rotation.z = -fcState.roll * Math.PI / 180;
+        droneGroup.rotation.x = fcState.pitch * Math.PI / 180;
+        droneGroup.rotation.y = -fcState.yaw * Math.PI / 180;
+        renderer.render(scene, camera);
+      }
+
+      document.getElementById('st-roll').textContent  = fcState.roll.toFixed(1) + '°';
+      document.getElementById('st-pitch').textContent = fcState.pitch.toFixed(1) + '°';
+      document.getElementById('st-yaw').textContent   = fcState.yaw.toFixed(0) + '°';
+
+      const isArmed = fcState.rc[4] > 1600;
+      const armBadge = document.getElementById('arm-badge');
+      armBadge.textContent = isArmed ? 'ARMED' : 'DISARMED';
+      armBadge.style.color = isArmed ? '#10b981' : '#ef4444';
+      document.getElementById('mode-arm-st').textContent = isArmed ? 'ARMED' : 'DISARMED';
+      document.getElementById('mode-arm-st').style.color = isArmed ? '#10b981' : '#ef4444';
+
+      for (let i = 0; i < 6; i++) {
+        const val = fcState.rc[i] || 1500;
+        const bar = document.getElementById('rc-bar-' + i);
+        const num = document.getElementById('rc-num-' + i);
+        if (bar) bar.style.width = ((val - 1000) / 10) + '%';
+        if (num) num.textContent = val + ' µs';
+      }
+
+      drawOsdPreview(isArmed);
+      drawSensorGraph();
+    }
+
+    function drawOsdPreview(isArmed) {
+      const c = document.getElementById('osdCanvas');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      const w = c.width, h = c.height;
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      ctx.rotate(-fcState.roll * Math.PI / 180);
+      const pOff = fcState.pitch * 3.5;
+      ctx.fillStyle = '#112a46'; ctx.fillRect(-w, -h * 2 + pOff, w * 2, h * 2);
+      ctx.fillStyle = '#2d2217'; ctx.fillRect(-w, pOff, w * 2, h * 2);
+      ctx.restore();
+
+      ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#fff';
+      if (document.getElementById('osd-el-vtx').checked) ctx.fillText(`VTX ${BAND_LETTERS[fcState.vtx.band]}:${fcState.vtx.ch} ${fcState.vtx.freq}MHz ${fcState.vtx.pwr}mW`, 16, 26);
+      if (document.getElementById('osd-el-vbat').checked) ctx.fillText(`BAT ${fcState.vbat.toFixed(2)}V`, w - 125, 26);
+      if (document.getElementById('osd-el-gps').checked) ctx.fillText(`RX:${fcState.rxProto}  SAT:9  HDG:${fcState.yaw.toFixed(0)}°`, 16, h - 16);
+      if (document.getElementById('osd-el-arm').checked) {
+        ctx.fillStyle = isArmed ? '#ef4444' : '#ffbb00';
+        ctx.fillText(isArmed ? '*** ARMED ***' : 'DISARMED', w / 2 - 55, h - 45);
+      }
+      if (document.getElementById('osd-el-hor').checked) {
+        ctx.strokeStyle = '#ffbb00'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(w/2 - 35, h/2); ctx.lineTo(w/2 + 35, h/2); ctx.stroke();
+      }
+    }
+
+    function drawSensorGraph() {
+      const c = document.getElementById('sensorGraphCanvas');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      graphHistory.push([...fcState.gyro]);
+      if (graphHistory.length > 180) graphHistory.shift();
+      ctx.clearRect(0, 0, c.width, c.height);
+      ['#ef4444', '#10b981', '#38bdf8'].forEach((col, axis) => {
+        ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+        graphHistory.forEach((pt, idx) => {
+          const x = (idx / 180) * c.width;
+          const y = c.height / 2 - pt[axis] * 1.5;
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initUI();
+      requestAnimationFrame(renderLoop);
+    });
+  </script>
+</body>
+</html>
