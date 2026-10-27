@@ -824,12 +824,50 @@
                     <span style="font-family:monospace; color:var(--bf-yellow);">Target: <b id="fl-target-badge">ESP32</b> | Receiver: <b id="fl-rx-badge">ESPNOW</b></span>
                 </div>
 
+                <!-- Card 1: Full-Width English Step-by-Step Guide (How to Convert .ino to .bin & Flash via Browser) -->
+                <div class="bf-card" style="border-left: 3px solid var(--bf-yellow);">
+                    <div class="bf-card-head">
+                        <span><i class="fa-solid fa-list-check" style="color:var(--bf-yellow); margin-right:6px;"></i> Step-by-Step Guide: How to Convert .INO to .BIN &amp; Flash via Web Browser (Export Compiled Binary)</span>
+                        <button class="bf-btn-secondary" style="padding:3px 9px; font-size:11px;" onclick="copyRequiredLibraries()">
+                            <i class="fa-solid fa-book"></i> Copy Required Arduino Libraries
+                        </button>
+                    </div>
+                    <div class="bf-card-body">
+                        <div class="bf-grid-3" style="gap:12px;">
+                            <div style="background:#242424; border:1px solid #3c3c3c; padding:10px; border-radius:4px;">
+                                <div style="color:var(--bf-yellow); font-weight:700; margin-bottom:4px;">Step 1 &amp; Step 2: Export .BIN in Arduino IDE</div>
+                                <p style="color:#ccc; font-size:11px; line-height:1.5;">
+                                    <b>1.</b> Click <b>"Download ESP_FC.ino"</b> (or <b>"Copy Complete ESP_FC.ino"</b>) from the Auto-Built C++ Firmware panel below.<br>
+                                    <b>2.</b> Open <code>ESP_FC.ino</code> in <b>Arduino IDE</b>, select your board (<b>ESP32 Dev Module</b> or <b>NodeMCU 1.0 ESP-12E</b>), and click <code>Sketch &rarr; Export Compiled Binary</code> (Shortcut: <kbd style="background:#111; padding:1px 4px; border:1px solid #555; border-radius:2px;">Ctrl+Alt+S</kbd> on Windows/Linux or <kbd style="background:#111; padding:1px 4px; border:1px solid #555; border-radius:2px;">Cmd+Option+S</kbd> on macOS).
+                                </p>
+                            </div>
+                            <div style="background:#242424; border:1px solid #3c3c3c; padding:10px; border-radius:4px;">
+                                <div style="color:var(--bf-yellow); font-weight:700; margin-bottom:4px;">Step 3 &amp; Step 4: Load Local .BIN &amp; Flash over USB</div>
+                                <p style="color:#ccc; font-size:11px; line-height:1.5;">
+                                    <b>3.</b> Arduino IDE will generate <code>ESP_FC.ino.bin</code> inside your sketch folder's <code>build/</code> directory.<br>
+                                    <b>4.</b> Click <b>"Load Firmware [Local .bin]"</b> below, select <code>ESP_FC.ino.bin</code>, and click <b>"Flash Firmware (.bin) via USB"</b> to program your ESP32/ESP8266 directly from the browser.
+                                </p>
+                            </div>
+                            <div style="background:#242424; border:1px solid #3c3c3c; padding:10px; border-radius:4px;">
+                                <div style="color:var(--bf-green); font-weight:700; margin-bottom:4px;">Step 5: One-Time Flash Note (Live NVS Sync)</div>
+                                <p style="color:#ccc; font-size:11px; line-height:1.5;">
+                                    <b>5.</b> Once flashed <b>once</b>, you never need to re-compile a <code>.bin</code> again! Any future changes to <b>GPIO Pins</b>, <b>Receiver Protocol</b> (<code>ESP-NOW</code>, <code>CRSF</code>, <code>iBUS</code>, <code>SBUS</code>), <b>Sensor ON/OFF switches</b>, or <b>PIDs</b> can be uploaded directly using <b>"Write Config to NVS / EEPROM"</b> or <b>"Save and Reboot"</b>.
+                                </p>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px; padding:6px 10px; background:#1a1a1a; border:1px solid #333; border-radius:3px; display:flex; align-items:center; justify-content:space-between; font-size:11px; color:#aaa;">
+                            <span><i class="fa-solid fa-circle-info" style="color:var(--bf-yellow);"></i> Required Arduino IDE Library Manager Dependencies: <code style="color:#fff;">WebSockets</code> (by Markus Sattler) &amp; <code style="color:#fff;">ArduinoJson</code> (by Benoit Blanchon)</span>
+                            <span id="lib-copy-status" style="color:var(--bf-green); font-family:monospace; font-weight:700;"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bf-grid-2">
                     <!-- Left Column: Direct Web Serial Flasher & NVS Sync -->
                     <div>
                         <div class="bf-card">
                             <div class="bf-card-head">
-                                <span>1. Direct Live NVS / EEPROM Uploader (Over USB Serial or Wi-Fi)</span>
+                                <span>1. Direct Live NVS / EEPROM Config Sync (Over USB Serial or Wi-Fi)</span>
                                 <i class="fa-solid fa-satellite-dish"></i>
                             </div>
                             <div class="bf-card-body">
@@ -837,19 +875,19 @@
                                     If your ESP32 / ESP8266 already runs the base <b>ESP_FC</b> firmware, you do <b>not</b> need to re-compile! Click below to write your custom GPIO Pins, Receiver Protocol, Sensor ON/OFF switches, PIDs, and VTX settings directly into the board's Flash EEPROM:
                                 </p>
                                 <button class="bf-btn" style="width:100%; padding:10px;" onclick="syncAllConfigToBoard()">
-                                    <i class="fa-solid fa-upload"></i> Write All Configuration Directly to ESP NVS / EEPROM
+                                    <i class="fa-solid fa-upload"></i> Write Config to NVS / EEPROM (No Re-Flash Needed)
                                 </button>
                             </div>
                         </div>
 
                         <div class="bf-card">
                             <div class="bf-card-head">
-                                <span>2. Web Serial Bootloader .BIN Firmware Flasher (esptool protocol)</span>
+                                <span>2. Local .BIN Web Serial Bootloader Flasher (esptool protocol)</span>
                                 <i class="fa-solid fa-microchip"></i>
                             </div>
                             <div class="bf-card-body">
                                 <p style="color:#bbb; margin-bottom:10px; line-height:1.4;">
-                                    Flash a compiled <code>.bin</code> image directly from Chrome/Edge over USB. Automatically pulses DTR/RTS to put ESP32/ESP8266 into ROM bootloader mode.
+                                    Flash a compiled <code>ESP_FC.ino.bin</code> image directly from Chrome/Edge over USB. Automatically pulses DTR/RTS to put ESP32/ESP8266 into ROM bootloader mode.
                                 </p>
                                 <div class="bf-grid-2" style="margin-bottom:8px;">
                                     <div>
@@ -869,17 +907,23 @@
                                     </div>
                                 </div>
                                 <div style="margin-bottom:10px;">
-                                    <label>Select Compiled Firmware Binary (.bin)</label>
-                                    <input type="file" id="bin-file-picker" accept=".bin" class="bf-input" style="width:100%;">
+                                    <label style="display:block; margin-bottom:4px;">Compiled Binary Image (<code>ESP_FC.ino.bin</code>)</label>
+                                    <input type="file" id="bin-file-picker" accept=".bin" style="display:none;" onchange="onBinFileSelected(this)">
+                                    <div style="display:flex; gap:8px; align-items:center;">
+                                        <button class="bf-btn-secondary" type="button" onclick="document.getElementById('bin-file-picker').click()">
+                                            <i class="fa-solid fa-folder-open"></i> Load Firmware [Local .bin]
+                                        </button>
+                                        <span id="bin-file-name-label" style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#999;">No .bin file loaded</span>
+                                    </div>
                                 </div>
                                 <!-- Progress Bar -->
                                 <div style="height:20px; background:#161616; border:1px solid #444; border-radius:3px; overflow:hidden; margin-bottom:10px;">
                                     <div id="fl-progress-bar" style="width:0%; height:100%; background:var(--bf-green); color:#000; font-weight:700; text-align:center; line-height:20px; font-size:11px; transition:width 0.15s;">0%</div>
                                 </div>
                                 <button class="bf-btn" style="width:100%; padding:9px;" onclick="flashBinOverWebSerial()">
-                                    <i class="fa-solid fa-bolt"></i> Flash .BIN Firmware Over USB Web Serial
+                                    <i class="fa-solid fa-bolt"></i> Flash Firmware (.bin) via USB
                                 </button>
-                                <pre id="fl-console-log" style="margin-top:10px; height:115px; background:#141414; border:1px solid #3c3c3c; padding:8px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#86cc00; overflow-y:auto; white-space:pre-wrap;">[ESP_FC Flasher] Ready. Connect ESP32/ESP8266 via USB.</pre>
+                                <pre id="fl-console-log" style="margin-top:10px; height:115px; background:#141414; border:1px solid #3c3c3c; padding:8px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#86cc00; overflow-y:auto; white-space:pre-wrap;">[ESP_FC Flasher] Ready. Export ESP_FC.ino.bin via Arduino IDE (Ctrl+Alt+S) or use Live NVS Sync above.</pre>
                             </div>
                         </div>
                     </div>
@@ -2725,6 +2769,40 @@ void loop() {
             setBottomLog('Copied 2nd ESP32 ESP-NOW Transmitter Remote code to clipboard.');
         }
 
+        function copyRequiredLibraries() {
+            const libText = 'WebSockets by Markus Sattler, ArduinoJson by Benoit Blanchon';
+            const temp = document.createElement('textarea');
+            temp.value = libText;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            const badge = document.getElementById('lib-copy-status');
+            if (badge) {
+                badge.textContent = 'Copied library names!';
+                setTimeout(() => { badge.textContent = ''; }, 3000);
+            }
+            setBottomLog('Copied required Arduino libraries: ' + libText);
+        }
+
+        function onBinFileSelected(input) {
+            const label = document.getElementById('bin-file-name-label');
+            const flog = document.getElementById('fl-console-log');
+            if (input.files && input.files.length > 0) {
+                const f = input.files[0];
+                label.textContent = `${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+                label.style.color = '#86cc00';
+                if (flog) {
+                    flog.textContent += `\n[LOCAL .BIN LOADED] ${f.name} (${f.size} bytes) ready to flash.`;
+                    flog.scrollTop = flog.scrollHeight;
+                }
+                setBottomLog(`Loaded local firmware binary: ${f.name}`);
+            } else {
+                label.textContent = 'No .bin file loaded';
+                label.style.color = '#999';
+            }
+        }
+
         async function flashBinOverWebSerial() {
             const filePicker = document.getElementById('bin-file-picker');
             const flog = document.getElementById('fl-console-log');
@@ -2735,7 +2813,7 @@ void loop() {
                 return;
             }
             if (!filePicker.files.length) {
-                flog.textContent += '\n[NOTICE] Please choose a compiled .bin file first, or click "Write All Configuration Directly to ESP NVS / EEPROM" above.';
+                flog.textContent += '\n[NOTICE] Please click "Load Firmware [Local .bin]" first, or click "Write Config to NVS / EEPROM" above.';
                 return;
             }
 
